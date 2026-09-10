@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Deal Desk — brand deal pipeline for independent creators" />
+  <title>Deal Desk</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">◇</span>
+        <div>
+          <h1>Deal Desk</h1>
+          <p class="tagline">Brand deals, one pipeline</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button type="button" class="btn btn-ghost" id="btn-export" title="Export deals as JSON">Export</button>
+        <button type="button" class="btn btn-primary" id="btn-new-deal">+ New deal</button>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button type="button" class="tab active" data-view="pipeline" role="tab" aria-selected="true">Pipeline</button>
+      <button type="button" class="tab" data-view="reminders" role="tab" aria-selected="false">
+        Reminders
+        <span class="badge" id="reminder-badge" hidden>0</span>
+      </button>
+      <button type="button" class="tab" data-view="intake" role="tab" aria-selected="false">Paste intake</button>
+    </nav>
+
+    <main>
+      <!-- PIPELINE VIEW -->
+      <section id="view-pipeline" class="view active" role="tabpanel">
+        <div class="filters">
+          <div class="status-pills" id="status-pills">
+            <button type="button" class="pill active" data-status="all">All</button>
+            <button type="button" class="pill" data-status="inquiry">Inquiry</button>
+            <button type="button" class="pill" data-status="agreed">Agreed</button>
+            <button type="button" class="pill" data-status="in_progress">In progress</button>
+            <button type="button" class="pill" data-status="delivered">Delivered</button>
+            <button type="button" class="pill" data-status="paid">Paid</button>
+          </div>
+          <input type="search" id="search-deals" class="search" placeholder="Search brand or notes…" autocomplete="off" />
+        </div>
+        <div id="deal-list" class="deal-list"></div>
+        <p id="empty-pipeline" class="empty-state" hidden>No deals yet. Paste an email or create one manually.</p>
+      </section>
+
+      <!-- REMINDERS VIEW -->
+      <section id="view-reminders" class="view" role="tabpanel" hidden>
+        <div class="reminders-intro">
+          <h2>Usage rights &amp; deadlines</h2>
+          <p>Upcoming expiries, overdue deliverables, and unpaid invoices — copy a reminder email in one click.</p>
+        </div>
+        <div id="reminders-list" class="reminders-list"></div>
+        <p id="empty-reminders" class="empty-state" hidden>Nothing urgent. You're clear for now.</p>
+      </section>
+
+      <!-- INTAKE VIEW -->
+      <section id="view-intake" class="view" role="tabpanel" hidden>
+        <div class="intake-panel">
+          <h2>Paste intake</h2>
+          <p class="hint">Paste a brand email or DM. We'll pull brand, fee, deliverables, dates, and usage rights. Edit anything before saving.</p>
+          <textarea id="intake-text" rows="12" placeholder="Paste email or DM here…
+
+Example:
+Hi! Acme Snacks wants to partner for a sponsored YouTube video + 2 Instagram stories.
+Fee: $2,500. Deliverables due by Oct 15, 2026. Usage rights: 6 months from publish.
+Payment net 30 after delivery."></textarea>
+          <div class="intake-actions">
+            <button type="button" class="btn btn-primary" id="btn-parse">Parse → review</button>
+            <button type="button" class="btn btn-ghost" id="btn-clear-intake">Clear</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- DEAL DETAIL / EDIT DRAWER -->
+    <div id="drawer-backdrop" class="drawer-backdrop" hidden></div>
+    <aside id="deal-drawer" class="drawer" hidden aria-label="Deal details">
+      <div class="drawer-header">
+        <h2 id="drawer-title">Deal</h2>
+        <button type="button" class="icon-btn" id="btn-close-drawer" aria-label="Close">×</button>
+      </div>
+      <form id="deal-form" class="drawer-body">
+        <input type="hidden" id="deal-id" />
+
+        <label>
+          Brand name
+          <input type="text" id="f-brand" required placeholder="Acme Snacks" />
+        </label>
+
+        <label>
+          Status
+          <select id="f-status">
+            <option value="inquiry">Inquiry</option>
+            <option value="agreed">Agreed</option>
+            <option value="in_progress">In progress</option>
+            <option value="delivered">Delivered</option>
+            <option value="paid">Paid</option>
+          </select>
+        </label>
+
+        <fieldset class="fieldset">
+          <legend>Payment</legend>
+          <div class="row">
+            <label class="flex-1">
+              Amount ($)
+              <input type="number" id="f-fee" min="0" step="0.01" placeholder="2500" />
+            </label>
+            <label class="flex-1">
+              Status
+              <select id="f-payment-status">
+                <option value="unpaid">Unpaid</option>
+                <option value="partial">Partial</option>
+                <option value="paid">Paid</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            Payment due
+            <input type="date" id="f-payment-due" />
+          </label>
+        </fieldset>
+
+        <fieldset class="fieldset">
+          <legend>Usage rights</legend>
+          <label>
+            Rights window
+            <input type="text" id="f-rights-text" placeholder="6 months from publish / perpetual / organic only" />
+          </label>
+          <div class="row">
+            <label class="flex-1">
+              Starts
+              <input type="date" id="f-rights-start" />
+            </label>
+            <label class="flex-1">
+              Expires
+              <input type="date" id="f-rights-end" />
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="fieldset">
+          <legend>Deliverables</legend>
+          <div id="deliverables-editor"></div>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-add-deliverable">+ Add deliverable</button>
+        </fieldset>
+
+        <label>
+          Notes
+          <textarea id="f-notes" rows="3" placeholder="Contact, links, special terms…"></textarea>
+        </label>
+
+        <div class="drawer-footer">
+          <button type="button" class="btn btn-danger" id="btn-delete-deal">Delete</button>
+          <div class="spacer"></div>
+          <button type="button" class="btn btn-ghost" id="btn-cancel-deal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save deal</button>
+        </div>
+      </form>
+    </aside>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast" hidden role="status"></div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
